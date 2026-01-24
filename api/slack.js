@@ -77,12 +77,7 @@ What would you like to do? Reply with *"submit"*, *"help"*, or *"chat"*`;
 
 const HELP_WELCOME = `🔍 *Let's find a solution for you!*
 
-First, what's your name?`;
-
-const HELP_QUESTIONS = {
-  name: "First, what's your name?",
-  challenge: "Great! Now tell me: *What challenge are you trying to solve?*\n\nBe as specific as you can - what task takes too long, what's frustrating, or what would you like to automate?"
-};
+What challenge are you trying to solve? Be specific - what task takes too long, what's frustrating, or what would you like to automate?`;
 
 // Handle first message from user (mode selection)
 async function handleModeSelection(userId, text) {
@@ -98,9 +93,11 @@ async function handleModeSelection(userId, text) {
     await createChatSession(userId);
     await sendDM(userId, "I'm ready to help you brainstorm! What challenge are you trying to solve with AI?");
   } else {
-    // Treat as starting a help session with their message as the challenge
+    // Treat their message as a challenge - start help session and process immediately
     await createHelpSession(userId);
-    await sendDM(userId, `Let me help you with that! But first, what's your name?`);
+    // Simulate them already being in the help flow with their message as the challenge
+    const session = await getSession(userId);
+    await handleHelpFlow(userId, text, session);
   }
 }
 
@@ -217,21 +214,14 @@ async function handleHelpFlow(userId, text, session) {
 
   const currentStep = session.step;
 
-  // Step 1: Get name
-  if (currentStep === 'name') {
-    await updateSession(userId, { name: text, step: 'challenge' });
-    await sendDM(userId, `Nice to meet you, ${text}! 👋\n\n${HELP_QUESTIONS.challenge}`);
-    return;
-  }
-
-  // Step 2: Get challenge and start conversation
+  // First message - get challenge and start conversation immediately
   if (currentStep === 'challenge' && !session.challenge) {
-    const updatedSession = await updateSession(userId, { challenge: text, step: 'conversation' });
+    await updateSession(userId, { challenge: text, step: 'conversation' });
 
-    // Log the initial help request
+    // Log the initial help request (name will be null until we have users:read)
     await logHelpRequest({
       userId,
-      userName: updatedSession.name,
+      userName: null,
       challenge: text,
       category: null,
       matchedTools: null,
@@ -254,7 +244,6 @@ async function handleHelpFlow(userId, text, session) {
       });
 
       await sendDM(userId, response);
-      await sendDM(userId, "\n_Reply to continue the conversation, or type *submit* if you found a solution to share!_");
     } catch (error) {
       console.error('Help chat error:', error);
       await sendDM(userId, "Sorry, I had trouble processing that. Could you try again?");
