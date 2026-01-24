@@ -10,7 +10,8 @@ import {
 } from '../lib/sessions.js';
 import { polishSubmission, chat, helpChat } from '../lib/openai.js';
 import { sendDM, notifyAdmin } from '../lib/slack.js';
-import { logSubmission, logHelpRequest } from '../lib/sheets.js';
+import { logSubmission, logHelpRequest, getApprovedSubmissions } from '../lib/sheets.js';
+import { companyContext } from '../config/company-context.js';
 
 // Access control - set to false to open to everyone
 const PRIVATE_MODE = true;
@@ -78,6 +79,102 @@ What would you like to do? Reply with *"submit"*, *"help"*, or *"chat"*`;
 const HELP_WELCOME = `🔍 *Let's find a solution for you!*
 
 What challenge are you trying to solve? Be specific - what task takes too long, what's frustrating, or what would you like to automate?`;
+
+const COMMANDS_HELP = `🤖 *Innovators Circle Commands*
+
+*Quick Actions:*
+• \`/submit\` - Share an AI win with the team
+• \`/new\` - Start a fresh conversation
+• \`/tools\` - List all approved AI tools
+• \`/tools [search]\` - Search tools (e.g., \`/tools writing\`)
+• \`/workflows [team]\` - Show AI workflows for a team
+• \`/tip\` - Get a random AI tip or recent win
+
+*In conversation:*
+• Type \`cancel\` to exit current flow
+• Type \`submit\` to switch to submission mode
+
+Just message me directly to ask about AI solutions!`;
+
+// Format tools list for display
+function formatToolsList(tools, search = null) {
+  let filtered = tools;
+  if (search) {
+    const searchLower = search.toLowerCase();
+    filtered = tools.filter(t =>
+      t.name.toLowerCase().includes(searchLower) ||
+      t.category.toLowerCase().includes(searchLower) ||
+      t.useCases?.some(u => u.toLowerCase().includes(searchLower)) ||
+      t.aiFeatures?.some(f => f.toLowerCase().includes(searchLower))
+    );
+  }
+
+  if (filtered.length === 0) {
+    return search
+      ? `No tools found matching "${search}". Try \`/tools\` to see all.`
+      : "No tools configured yet.";
+  }
+
+  const toolLines = filtered.map(t => {
+    const aiTag = t.hasAI ? ' ✨' : '';
+    const features = t.aiFeatures?.length > 0 ? ` - ${t.aiFeatures.slice(0, 2).join(', ')}` : '';
+    return `• *${t.name}*${aiTag} (${t.category})${features}`;
+  });
+
+  const header = search
+    ? `🔧 *Tools matching "${search}":*`
+    : `🔧 *Approved AI Tools (${filtered.length}):*`;
+
+  return `${header}\n\n${toolLines.join('\n')}\n\n_Use \`/tools [search]\` to filter_`;
+}
+
+// Format workflows for a team
+function formatWorkflows(teamSearch = null) {
+  const { workflows } = companyContext;
+  if (!workflows) return "No workflows configured.";
+
+  if (teamSearch) {
+    const searchLower = teamSearch.toLowerCase();
+    const matchedTeam = Object.keys(workflows).find(t =>
+      t.toLowerCase().includes(searchLower)
+    );
+
+    if (!matchedTeam) {
+      const teamList = Object.keys(workflows).join(', ');
+      return `Team "${teamSearch}" not found.\n\nAvailable teams: ${teamList}`;
+    }
+
+    const items = workflows[matchedTeam];
+    return `📋 *${matchedTeam} Workflows:*\n\n${items.map(w => `• ${w}`).join('\n')}`;
+  }
+
+  // Show all teams summary
+  const teamSummary = Object.entries(workflows)
+    .map(([team, items]) => `• *${team}* (${items.length} workflows)`)
+    .join('\n');
+
+  return `📋 *AI Workflows by Team:*\n\n${teamSummary}\n\n_Use \`/workflows [team]\` to see details (e.g., \`/workflows sales\`)_`;
+}
+
+// Get a random tip or recent submission
+async function getRandomTip() {
+  const submissions = await getApprovedSubmissions();
+  const tips = [
+    "💡 *Tip:* When using ChatGPT for emails, paste in an example of your writing style first for more personalized results.",
+    "💡 *Tip:* Use ClickUp AI to summarize long comment threads - just click the AI button on any task.",
+    "💡 *Tip:* Before a customer call, ask ChatGPT to summarize key points from their recent feedback data.",
+    "💡 *Tip:* Stuck on how to phrase something? Ask AI for 3 different versions and pick your favorite.",
+    "💡 *Tip:* Use AI to create first drafts, then edit with your expertise - faster than starting from scratch."
+  ];
+
+  // Mix in recent submissions as tips
+  if (submissions.length > 0) {
+    const recentSubmission = submissions[Math.floor(Math.random() * submissions.length)];
+    tips.push(`🏆 *Recent win:* ${recentSubmission.problem}\n_Solution:_ ${recentSubmission.solution}\n_Time saved:_ ${recentSubmission.timeSaved}`);
+  }
+
+  return tips[Math.floor(Math.random() * tips.length)];
+}
 
 // Handle first message from user (mode selection)
 async function handleModeSelection(userId, text) {
@@ -359,6 +456,37 @@ export default async function handler(req, res) {
       await deleteSession(body.user_id); // Clear any existing session
       await createSubmissionSession(body.user_id);
       await sendDM(body.user_id, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/tools') {
+      const search = body.text?.trim() || null;
+      const response = formatToolsList(companyContext.approvedTools, search);
+      await sendDM(body.user_id, response);
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/workflows') {
+      const teamSearch = body.text?.trim() || null;
+      const response = formatWorkflows(teamSearch);
+      await sendDM(body.user_id, response);
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/tip') {
+      const tip = await getRandomTip();
+      await sendDM(body.user_id, tip);
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/new') {
+      await deleteSession(body.user_id);
+      await sendDM(body.user_id, "✨ Fresh start! What can I help you with?");
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/commands') {
+      await sendDM(body.user_id, COMMANDS_HELP);
       return res.status(200).send('');
     }
 
