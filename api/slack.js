@@ -341,35 +341,32 @@ export default async function handler(req, res) {
 
     // Handle slash commands
     if (body.command === '/innovators') {
-      res.status(200).send('');
       await sendDM(body.user_id, WELCOME_MESSAGE);
-      return;
+      return res.status(200).send('');
     }
 
     if (body.command === '/help') {
-      res.status(200).send('');
       // Check if user is allowed (private mode)
       if (!isUserAllowed(body.user_id)) {
         await sendDM(body.user_id, "🚧 This bot is currently in testing mode. Check back soon!");
-        return;
+        return res.status(200).send('');
       }
       deleteSession(body.user_id); // Clear any existing session
       createHelpSession(body.user_id);
       await sendDM(body.user_id, HELP_WELCOME);
-      return;
+      return res.status(200).send('');
     }
 
     if (body.command === '/submit') {
-      res.status(200).send('');
       // Check if user is allowed (private mode)
       if (!isUserAllowed(body.user_id)) {
         await sendDM(body.user_id, "🚧 This bot is currently in testing mode. Check back soon!");
-        return;
+        return res.status(200).send('');
       }
       deleteSession(body.user_id); // Clear any existing session
       createSubmissionSession(body.user_id);
       await sendDM(body.user_id, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
-      return;
+      return res.status(200).send('');
     }
 
     // Handle event callbacks
@@ -382,12 +379,9 @@ export default async function handler(req, res) {
           !event.bot_id &&
           !event.subtype) {
 
-        // Acknowledge immediately
-        res.status(200).send('');
-
-        // Process asynchronously
+        // Process the message then respond
         await handleDirectMessage(event.user, event.text);
-        return;
+        return res.status(200).send('');
       }
     }
 
