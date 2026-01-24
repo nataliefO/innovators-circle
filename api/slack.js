@@ -16,6 +16,10 @@ import { logSubmission, logHelpRequest } from '../lib/sheets.js';
 const PRIVATE_MODE = true;
 const ALLOWED_USERS = [process.env.ADMIN_USER_ID];
 
+// Track processed events to prevent duplicates (Slack retries)
+const processedEvents = new Set();
+const EVENT_TTL = 60000; // Keep event IDs for 1 minute
+
 function isUserAllowed(userId) {
   if (!PRIVATE_MODE) return true;
   return ALLOWED_USERS.includes(userId);
@@ -378,6 +382,16 @@ export default async function handler(req, res) {
           event.channel_type === 'im' &&
           !event.bot_id &&
           !event.subtype) {
+
+        // Deduplicate events using client_msg_id or event_ts
+        const eventId = event.client_msg_id || event.ts;
+        if (processedEvents.has(eventId)) {
+          console.log('Duplicate event ignored:', eventId);
+          return res.status(200).send('');
+        }
+        processedEvents.add(eventId);
+        // Clean up old event IDs after TTL
+        setTimeout(() => processedEvents.delete(eventId), EVENT_TTL);
 
         // Process the message then respond
         await handleDirectMessage(event.user, event.text);
