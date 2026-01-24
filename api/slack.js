@@ -89,17 +89,17 @@ async function handleModeSelection(userId, text) {
   const lowerText = text.toLowerCase().trim();
 
   if (lowerText === 'submit' || lowerText === '1') {
-    createSubmissionSession(userId);
+    await createSubmissionSession(userId);
     await sendDM(userId, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
   } else if (lowerText === 'help' || lowerText === '2') {
-    createHelpSession(userId);
+    await createHelpSession(userId);
     await sendDM(userId, HELP_WELCOME);
   } else if (lowerText === 'chat' || lowerText === '3') {
-    createChatSession(userId);
+    await createChatSession(userId);
     await sendDM(userId, "I'm ready to help you brainstorm! What challenge are you trying to solve with AI?");
   } else {
     // Treat as starting a help session with their message as the challenge
-    createHelpSession(userId);
+    await createHelpSession(userId);
     await sendDM(userId, `Let me help you with that! But first, what's your name?`);
   }
 }
@@ -108,21 +108,21 @@ async function handleModeSelection(userId, text) {
 async function handleSubmissionFlow(userId, text, session) {
   // Handle cancel command
   if (text.toLowerCase() === 'cancel') {
-    deleteSession(userId);
+    await deleteSession(userId);
     await sendDM(userId, "Submission cancelled. Message me anytime to start over!");
     return;
   }
 
   // Save current answer
   const currentStep = session.step;
-  const updatedSession = updateSession(userId, { [currentStep]: text });
+  const updatedSession = await updateSession(userId, { [currentStep]: text });
 
   // Get next step
   const nextStep = getNextStep(currentStep);
 
   if (nextStep) {
     // Move to next question
-    updateSession(userId, { step: nextStep });
+    await updateSession(userId, { step: nextStep });
     await sendDM(userId, `Got it! ✅\n\n${QUESTIONS[nextStep]}`);
   } else {
     // All questions answered - process submission
@@ -152,7 +152,7 @@ async function handleSubmissionFlow(userId, text, session) {
       await notifyAdmin(userId, polishedSummary);
 
       // Clean up session
-      deleteSession(userId);
+      await deleteSession(userId);
 
       await sendDM(userId,
         `🎉 Here's your polished submission:\n\n${polishedSummary}\n\nThank you for sharing! Message me anytime to submit another or chat about new ideas.`
@@ -162,7 +162,7 @@ async function handleSubmissionFlow(userId, text, session) {
       await sendDM(userId,
         "Sorry, there was an error processing your submission. Please try again."
       );
-      deleteSession(userId);
+      await deleteSession(userId);
     }
   }
 }
@@ -171,26 +171,26 @@ async function handleSubmissionFlow(userId, text, session) {
 async function handleChatFlow(userId, text, session) {
   // Allow user to switch to submit mode
   if (text.toLowerCase() === 'submit') {
-    deleteSession(userId);
-    createSubmissionSession(userId);
+    await deleteSession(userId);
+    await createSubmissionSession(userId);
     await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.name}`);
     return;
   }
 
   // Handle reset/cancel
   if (text.toLowerCase() === 'reset' || text.toLowerCase() === 'cancel') {
-    deleteSession(userId);
+    await deleteSession(userId);
     await sendDM(userId, "Chat cleared! Message me anytime to start fresh.");
     return;
   }
 
   // Add user message to history
-  addToChatHistory(userId, 'user', text);
+  await addToChatHistory(userId, 'user', text);
 
   try {
-    const updatedSession = getSession(userId);
+    const updatedSession = await getSession(userId);
     const response = await chat(updatedSession.conversationHistory);
-    addToChatHistory(userId, 'assistant', response);
+    await addToChatHistory(userId, 'assistant', response);
     await sendDM(userId, response);
   } catch (error) {
     console.error('Chat error:', error);
@@ -202,15 +202,15 @@ async function handleChatFlow(userId, text, session) {
 async function handleHelpFlow(userId, text, session) {
   // Handle cancel command
   if (text.toLowerCase() === 'cancel') {
-    deleteSession(userId);
+    await deleteSession(userId);
     await sendDM(userId, "No problem! Message me anytime you need help.");
     return;
   }
 
   // Allow switching modes
   if (text.toLowerCase() === 'submit') {
-    deleteSession(userId);
-    createSubmissionSession(userId);
+    await deleteSession(userId);
+    await createSubmissionSession(userId);
     await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.name}`);
     return;
   }
@@ -219,14 +219,14 @@ async function handleHelpFlow(userId, text, session) {
 
   // Step 1: Get name
   if (currentStep === 'name') {
-    updateSession(userId, { name: text, step: 'challenge' });
+    await updateSession(userId, { name: text, step: 'challenge' });
     await sendDM(userId, `Nice to meet you, ${text}! 👋\n\n${HELP_QUESTIONS.challenge}`);
     return;
   }
 
   // Step 2: Get challenge and start conversation
   if (currentStep === 'challenge' && !session.challenge) {
-    const updatedSession = updateSession(userId, { challenge: text, step: 'conversation' });
+    const updatedSession = await updateSession(userId, { challenge: text, step: 'conversation' });
 
     // Log the initial help request
     await logHelpRequest({
@@ -246,7 +246,7 @@ async function handleHelpFlow(userId, text, session) {
       const response = await helpChat(conversationHistory, text);
 
       // Save to session
-      updateSession(userId, {
+      await updateSession(userId, {
         conversationHistory: [
           { role: 'user', content: text },
           { role: 'assistant', content: response }
@@ -265,12 +265,12 @@ async function handleHelpFlow(userId, text, session) {
   // Ongoing help conversation
   if (currentStep === 'conversation') {
     try {
-      const currentSession = getSession(userId);
+      const currentSession = await getSession(userId);
       const newHistory = [...(currentSession.conversationHistory || []), { role: 'user', content: text }];
 
       const response = await helpChat(newHistory, currentSession.challenge);
 
-      updateSession(userId, {
+      await updateSession(userId, {
         conversationHistory: [...newHistory, { role: 'assistant', content: response }]
       });
 
@@ -290,7 +290,7 @@ async function handleDirectMessage(userId, text) {
     return;
   }
 
-  const session = getSession(userId);
+  const session = await getSession(userId);
 
   // No session - show welcome and handle mode selection
   if (!session) {
@@ -355,8 +355,8 @@ export default async function handler(req, res) {
         await sendDM(body.user_id, "🚧 This bot is currently in testing mode. Check back soon!");
         return res.status(200).send('');
       }
-      deleteSession(body.user_id); // Clear any existing session
-      createHelpSession(body.user_id);
+      await deleteSession(body.user_id); // Clear any existing session
+      await createHelpSession(body.user_id);
       await sendDM(body.user_id, HELP_WELCOME);
       return res.status(200).send('');
     }
@@ -367,8 +367,8 @@ export default async function handler(req, res) {
         await sendDM(body.user_id, "🚧 This bot is currently in testing mode. Check back soon!");
         return res.status(200).send('');
       }
-      deleteSession(body.user_id); // Clear any existing session
-      createSubmissionSession(body.user_id);
+      await deleteSession(body.user_id); // Clear any existing session
+      await createSubmissionSession(body.user_id);
       await sendDM(body.user_id, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
       return res.status(200).send('');
     }

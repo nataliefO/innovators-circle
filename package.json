@@ -12,6 +12,7 @@
   "dependencies": {
     "@slack/bolt": "^3.17.1",
     "@slack/web-api": "^6.11.2",
+    "@upstash/redis": "^1.36.1",
     "dotenv": "^16.4.5",
     "googleapis": "^170.1.0",
     "openai": "^4.28.0"
