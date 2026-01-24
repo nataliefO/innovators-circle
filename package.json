@@ -1,0 +1,25 @@
+{
+  "name": "innovators-circle-bot",
+  "version": "1.0.0",
+  "description": "Slack bot for collecting and sharing AI innovation submissions",
+  "main": "api/slack.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.17.1",
+    "@slack/web-api": "^6.11.2",
+    "dotenv": "^16.4.5",
+    "googleapis": "^170.1.0",
+    "openai": "^4.28.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

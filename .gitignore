@@ -1,0 +1,9 @@
+node_modules/
+.env
+.vercel
+*.log
+.DS_Store
+*.json
+!package.json
+!package-lock.json
+!vercel.json
