@@ -10,12 +10,21 @@ import {
 } from '../lib/sessions.js';
 import { polishSubmission, chat, helpChat } from '../lib/openai.js';
 import { sendDM, notifyAdmin } from '../lib/slack.js';
-import { logSubmission, logHelpRequest, getApprovedSubmissions } from '../lib/sheets.js';
+import {
+  logSubmission,
+  logHelpRequest,
+  getApprovedSubmissions,
+  getPendingSubmissions,
+  getInnovators,
+  updateSubmissionStatus,
+  getSubmissionByRow
+} from '../lib/sheets.js';
 import { companyContext } from '../config/company-context.js';
 
 // Access control - set to false to open to everyone
 const PRIVATE_MODE = true;
 const ALLOWED_USERS = [process.env.ADMIN_USER_ID];
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID;
 
 // Track processed events to prevent duplicates (Slack retries)
 const processedEvents = new Set();
@@ -24,6 +33,10 @@ const EVENT_TTL = 60000; // Keep event IDs for 1 minute
 function isUserAllowed(userId) {
   if (!PRIVATE_MODE) return true;
   return ALLOWED_USERS.includes(userId);
+}
+
+function isAdmin(userId) {
+  return userId === ADMIN_USER_ID;
 }
 
 // Verify Slack request signature
@@ -84,6 +97,7 @@ const COMMANDS_HELP = `🤖 *Innovators Circle Commands*
 
 *Quick Actions:*
 • \`/submit\` - Share an AI win with the team
+• \`/innovators-circle\` - See the Innovators Circle hall of fame
 • \`/new\` - Start a fresh conversation
 • \`/tools\` - List all approved AI tools
 • \`/tools [search]\` - Search tools (e.g., \`/tools writing\`)
@@ -96,12 +110,14 @@ const COMMANDS_HELP = `🤖 *Innovators Circle Commands*
 
 Just message me directly to ask about AI solutions!`;
 
-// Format tools list for display
+// Format tools list for display - grouped by what you can do
 function formatToolsList(tools, search = null) {
-  let filtered = tools;
+  // Only show tools with AI features
+  let aiTools = tools.filter(t => t.hasAI);
+
   if (search) {
     const searchLower = search.toLowerCase();
-    filtered = tools.filter(t =>
+    aiTools = aiTools.filter(t =>
       t.name.toLowerCase().includes(searchLower) ||
       t.category.toLowerCase().includes(searchLower) ||
       t.useCases?.some(u => u.toLowerCase().includes(searchLower)) ||
@@ -109,23 +125,49 @@ function formatToolsList(tools, search = null) {
     );
   }
 
-  if (filtered.length === 0) {
+  if (aiTools.length === 0) {
     return search
-      ? `No tools found matching "${search}". Try \`/tools\` to see all.`
-      : "No tools configured yet.";
+      ? `No AI tools found matching "${search}". Try \`/tools\` to see all.`
+      : "No AI tools configured yet.";
   }
 
-  const toolLines = filtered.map(t => {
-    const aiTag = t.hasAI ? ' ✨' : '';
-    const features = t.aiFeatures?.length > 0 ? ` - ${t.aiFeatures.slice(0, 2).join(', ')}` : '';
-    return `• *${t.name}*${aiTag} (${t.category})${features}`;
-  });
+  // If searching, show flat list with details
+  if (search) {
+    const toolLines = aiTools.map(t => {
+      const features = t.aiFeatures?.length > 0 ? `\n   _${t.aiFeatures.slice(0, 2).join(', ')}_` : '';
+      return `• *${t.name}* (${t.category})${features}`;
+    });
+    return `🔧 *AI Tools matching "${search}":*\n\n${toolLines.join('\n')}`;
+  }
 
-  const header = search
-    ? `🔧 *Tools matching "${search}":*`
-    : `🔧 *Approved AI Tools (${filtered.length}):*`;
+  // Group tools by use case for default view
+  const groups = {
+    "Writing & Content": aiTools.filter(t =>
+      t.useCases?.some(u => /writing|content|document/i.test(u)) ||
+      t.aiFeatures?.some(f => /writing|content/i.test(f))
+    ),
+    "Sales & Calls": aiTools.filter(t =>
+      t.useCases?.some(u => /sales|call|crm/i.test(u)) ||
+      t.teams?.some(team => /sales/i.test(team))
+    ),
+    "Code & Engineering": aiTools.filter(t =>
+      t.useCases?.some(u => /code|dev|test|review/i.test(u)) ||
+      t.teams?.some(team => /engineering/i.test(team))
+    ),
+    "General AI": aiTools.filter(t =>
+      t.category === "AI Assistant" || t.teams?.includes("All teams")
+    )
+  };
 
-  return `${header}\n\n${toolLines.join('\n')}\n\n_Use \`/tools [search]\` to filter_`;
+  const sections = Object.entries(groups)
+    .filter(([_, tools]) => tools.length > 0)
+    .map(([category, tools]) => {
+      const toolNames = [...new Set(tools.map(t => t.name))].join(', ');
+      return `*${category}:* ${toolNames}`;
+    })
+    .join('\n');
+
+  return `🔧 *AI Tools You Can Use*\n\n${sections}\n\n_Try \`/tools sales\` or \`/tools writing\` for details_`;
 }
 
 // Format workflows for a team
@@ -154,6 +196,43 @@ function formatWorkflows(teamSearch = null) {
     .join('\n');
 
   return `📋 *AI Workflows by Team:*\n\n${teamSummary}\n\n_Use \`/workflows [team]\` to see details (e.g., \`/workflows sales\`)_`;
+}
+
+// Format the Innovators Circle hall of fame
+async function formatInnovatorsHallOfFame() {
+  const innovators = await getInnovators();
+  const names = Object.keys(innovators);
+
+  if (names.length === 0) {
+    return `🏆 *The Innovators Circle*\n\n_No innovators yet! Be the first to submit a solution with \`/submit\`_`;
+  }
+
+  const lines = names.map(name => {
+    const solutions = innovators[name];
+    const count = solutions.length;
+    const latest = solutions[0]; // Most recent
+    return `🏆 *${name}* (${count} solution${count > 1 ? 's' : ''})\n   _Latest:_ ${latest.problem}`;
+  });
+
+  return `🏆 *The Innovators Circle - Hall of Fame*\n\nThese problem solvers have contributed AI solutions that help the whole team:\n\n${lines.join('\n\n')}\n\n_Want to join them? Type \`/submit\` to share your AI win!_`;
+}
+
+// Format pending submissions for admin review
+async function formatPendingSubmissions() {
+  const pending = await getPendingSubmissions();
+
+  if (pending.length === 0) {
+    return `✅ *No pending submissions!*\n\nAll caught up. New submissions will appear here.`;
+  }
+
+  const lines = pending.map((sub, i) => {
+    return `*${i + 1}. ${sub.name || 'Unknown'}* (Row ${sub.rowNumber})\n` +
+      `   _Problem:_ ${sub.problem?.slice(0, 100)}${sub.problem?.length > 100 ? '...' : ''}\n` +
+      `   _Solution:_ ${sub.solution?.slice(0, 80)}${sub.solution?.length > 80 ? '...' : ''}\n` +
+      `   \`/approve ${sub.rowNumber}\` or \`/decline ${sub.rowNumber}\``;
+  });
+
+  return `📋 *Pending Submissions (${pending.length})*\n\n${lines.join('\n\n')}`;
 }
 
 // Get a random tip or recent submission
@@ -249,7 +328,13 @@ async function handleSubmissionFlow(userId, text, session) {
       await deleteSession(userId);
 
       await sendDM(userId,
-        `🎉 Here's your polished submission:\n\n${polishedSummary}\n\nThank you for sharing! Message me anytime to submit another or chat about new ideas.`
+        `🎉 Here's your polished submission:\n\n${polishedSummary}\n\n` +
+        `✅ *Got it!* Your solution is officially been submitted!\n\n` +
+        `If your idea gets rolled out company-wide, you'll earn:\n` +
+        `🍽️ A night out on us!\n` +
+        `🏆 A spot in the *Innovators Circle* hall of fame\n\n` +
+        `Thanks for being a problem solver — that's what makes this team awesome. 💪\n\n` +
+        `Have another brilliant idea? Just type \`submit\` anytime!`
       );
     } catch (error) {
       console.error('Error processing submission:', error);
@@ -487,6 +572,98 @@ export default async function handler(req, res) {
 
     if (body.command === '/commands') {
       await sendDM(body.user_id, COMMANDS_HELP);
+      return res.status(200).send('');
+    }
+
+    // /innovators-circle - Show the hall of fame (available to everyone)
+    if (body.command === '/innovators-circle') {
+      const response = await formatInnovatorsHallOfFame();
+      await sendDM(body.user_id, response);
+      return res.status(200).send('');
+    }
+
+    // Admin-only commands
+    if (body.command === '/pending') {
+      if (!isAdmin(body.user_id)) {
+        await sendDM(body.user_id, "🔒 This command is admin-only.");
+        return res.status(200).send('');
+      }
+      const response = await formatPendingSubmissions();
+      await sendDM(body.user_id, response);
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/approve') {
+      if (!isAdmin(body.user_id)) {
+        await sendDM(body.user_id, "🔒 This command is admin-only.");
+        return res.status(200).send('');
+      }
+      const rowNumber = parseInt(body.text?.trim());
+      if (!rowNumber) {
+        await sendDM(body.user_id, "Usage: `/approve [row number]`\n\nUse `/pending` to see submissions awaiting review.");
+        return res.status(200).send('');
+      }
+
+      const submission = await getSubmissionByRow(rowNumber);
+      if (!submission) {
+        await sendDM(body.user_id, `❌ No submission found at row ${rowNumber}`);
+        return res.status(200).send('');
+      }
+
+      const success = await updateSubmissionStatus(rowNumber, 'approved');
+      if (success) {
+        await sendDM(body.user_id, `✅ Approved submission from *${submission.name}*!\n\nThey've been notified and added to the Innovators Circle.`);
+
+        // Notify the user their submission was approved
+        if (submission.userId) {
+          await sendDM(submission.userId,
+            `🎉 *Congratulations!* Your submission has been approved!\n\n` +
+            `You're now officially part of the *Innovators Circle* hall of fame! 🏆\n\n` +
+            `Your solution:\n_${submission.problem}_\n\n` +
+            `We'll be in touch about your reward — a night out on us! 🍽️\n\n` +
+            `Keep those innovative ideas coming!`
+          );
+        }
+      } else {
+        await sendDM(body.user_id, `❌ Failed to approve submission. Please try again.`);
+      }
+      return res.status(200).send('');
+    }
+
+    if (body.command === '/decline') {
+      if (!isAdmin(body.user_id)) {
+        await sendDM(body.user_id, "🔒 This command is admin-only.");
+        return res.status(200).send('');
+      }
+      const rowNumber = parseInt(body.text?.trim());
+      if (!rowNumber) {
+        await sendDM(body.user_id, "Usage: `/decline [row number]`\n\nUse `/pending` to see submissions awaiting review.");
+        return res.status(200).send('');
+      }
+
+      const submission = await getSubmissionByRow(rowNumber);
+      if (!submission) {
+        await sendDM(body.user_id, `❌ No submission found at row ${rowNumber}`);
+        return res.status(200).send('');
+      }
+
+      const success = await updateSubmissionStatus(rowNumber, 'declined');
+      if (success) {
+        await sendDM(body.user_id, `✅ Declined submission from *${submission.name}*.`);
+
+        // Notify the user their submission was declined (gently)
+        if (submission.userId) {
+          await sendDM(submission.userId,
+            `Thanks for your submission! 🙏\n\n` +
+            `After review, this particular solution wasn't quite the right fit for the Innovators Circle — ` +
+            `but we really appreciate you thinking about ways to improve how we work!\n\n` +
+            `Keep experimenting with AI and submit again when you find another win. ` +
+            `Every problem solved is a step forward! 💪`
+          );
+        }
+      } else {
+        await sendDM(body.user_id, `❌ Failed to decline submission. Please try again.`);
+      }
       return res.status(200).send('');
     }
 

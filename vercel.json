@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/slack.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     }
   ],
@@ -10,6 +10,16 @@
     {
       "src": "/api/slack",
       "dest": "/api/slack.js"
+    },
+    {
+      "src": "/api/cron/reminder",
+      "dest": "/api/cron/reminder.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/reminder",
+      "schedule": "0 14 * * 1-5"
     }
   ]
 }

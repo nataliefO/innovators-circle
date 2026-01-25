@@ -56,14 +56,22 @@ Our customers include multifamily property management companies like Cushman & W
 
   // Tools and software the company uses (with AI capabilities noted)
   approvedTools: [
+    // licenseAccess options: "all", "request", or array of team names like ["Engineering", "Product"]
     {
       name: "Figma",
       category: "Design",
       plan: "Professional",
       hasAI: true,
-      aiFeatures: ["AI-powered design suggestions", "Auto layout", "Content generation"],
-      useCases: ["UI/UX design", "Prototyping", "Design collaboration"],
-      teams: ["Product", "Marketing", "Engineering"]
+      aiFeatures: [
+        "AI-powered design suggestions",
+        "Auto layout",
+        "Content generation",
+        "MCP server for Copilot integration"
+      ],
+      useCases: ["UI/UX design", "Prototyping", "Design collaboration", "Component specs for engineering"],
+      teams: ["Product", "Marketing", "Engineering"],
+      licenseAccess: ["Product", "Engineering"],
+      notes: "Product/Design uses Figma for prototyping and design. Engineering uses the Figma MCP server to give Copilot context for building components from designs - Copilot can read Figma specs to generate matching code."
     },
     {
       name: "ClickUp",
@@ -72,106 +80,106 @@ Our customers include multifamily property management companies like Cushman & W
       hasAI: true,
       aiFeatures: ["ClickUp AI for writing", "Task summarization", "Action item extraction", "Standups generation"],
       useCases: ["Task management", "Project tracking", "Documentation", "Team collaboration"],
-      teams: ["All teams"]
+      teams: ["All teams"],
+      licenseAccess: "all"
     },
     {
       name: "GitHub Copilot",
       category: "Development",
-      plan: "Enterprise", // TODO: Confirm tier
+      plan: "Enterprise",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
-      useCases: ["Code completion", "Code generation", "Documentation"],
-      teams: ["Engineering"]
+      aiFeatures: [
+        "Code completion",
+        "Copilot Chat",
+        "Custom agents (planning, migrations, tests)",
+        "Code generation",
+        "Code explanation"
+      ],
+      useCases: ["Code completion", "Code generation", "Documentation", "Test generation", "Code migrations", "Planning"],
+      teams: ["Engineering"],
+      licenseAccess: ["Engineering"],
+      // Additional context for the AI assistant
+      notes: "We have custom Copilot agents for planning, migrations, and test generation. Engineers should be using Copilot for most code writing tasks. There's opportunity to build more custom agents for team-specific workflows."
     },
     {
       name: "CodeRabbit",
       category: "Development",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["Automated PR review", "Code suggestions"],
       useCases: ["Code review", "PR analysis"],
-      teams: ["Engineering"]
+      teams: ["Engineering"],
+      licenseAccess: ["Engineering"]
     },
     {
       name: "Mabl",
       category: "Testing/QA",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["Auto-healing tests", "AI test creation"],
       useCases: ["Automated testing", "QA automation"],
-      teams: ["Engineering", "QA"]
+      teams: ["Engineering", "QA"],
+      licenseAccess: ["Engineering", "QA"]
     },
     {
       name: "HubSpot",
       category: "CRM/Marketing",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["Email writing assistant", "Content assistant"],
       useCases: ["CRM", "Marketing automation", "Sales"],
-      teams: ["Sales", "Marketing"]
-    },
-    {
-      name: "Grow",
-      category: "Business Intelligence",
-      plan: "", // TODO: Confirm tier
-      hasAI: false, // TODO: Confirm if AI features available
-      aiFeatures: [], // TODO: Fill in AI features if any
-      useCases: ["Dashboards", "Reporting", "Data visualization"],
-      teams: ["Operations", "Finance", "Executive"]
+      teams: ["Sales", "Marketing"],
+      licenseAccess: ["Sales", "Marketing"]
     },
     {
       name: "Databricks",
       category: "Data Platform",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["AI/ML workflows", "Natural language queries"],
       useCases: ["Data engineering", "Data science", "Analytics"],
-      teams: ["Engineering", "Data"]
+      teams: ["Engineering", "Data"],
+      licenseAccess: ["Engineering", "Data"]
     },
     {
       name: "Gong",
       category: "Revenue Intelligence",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["Call summaries", "Deal insights", "Coaching recommendations"],
       useCases: ["Call recording", "Sales coaching", "Deal intelligence"],
-      teams: ["Sales", "Customer Success"]
+      teams: ["Sales", "Customer Success"],
+      licenseAccess: ["Sales", "Customer Success"]
     },
     {
       name: "Notion",
       category: "Documentation/Wiki",
-      plan: "", // TODO: Confirm tier
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in AI features
+      aiFeatures: ["Notion AI writing", "Summarization", "Translation"],
       useCases: ["Documentation", "Wiki", "Knowledge base", "Project management"],
-      teams: ["All teams"]
+      teams: ["All teams"],
+      licenseAccess: "all" // TODO: Confirm - does everyone have Notion AI?
     },
     {
       name: "Google Workspace",
       category: "Productivity Suite",
-      plan: "", // TODO: Confirm tier (Business Starter/Standard/Plus, Enterprise)
+      plan: "",
       hasAI: true,
-      aiFeatures: [], // TODO: Fill in Gemini features
+      aiFeatures: ["Gemini in Docs", "Gemini in Sheets", "Gemini in Gmail"],
       useCases: ["Email", "Documents", "Spreadsheets", "Presentations", "Collaboration"],
-      teams: ["All teams"]
+      teams: ["All teams"],
+      licenseAccess: "all"
     },
     {
       name: "ChatGPT",
       category: "AI Assistant",
-      plan: "", // TODO: Confirm tier (Plus, Team, Enterprise)
+      plan: "",
       hasAI: true,
       aiFeatures: ["General AI assistant", "Writing", "Analysis", "Code help"],
       useCases: ["Writing assistance", "Research", "Brainstorming", "Analysis"],
-      teams: ["All teams"]
-    },
-    {
-      name: "NetSuite",
-      category: "ERP/Finance",
-      plan: "", // TODO: Confirm tier
-      hasAI: false, // TODO: Confirm if AI features available
-      aiFeatures: [], // TODO: Fill in AI features if any
-      useCases: ["Accounting", "Financial management", "ERP"],
-      teams: ["Finance", "Operations"]
+      teams: ["All teams"],
+      licenseAccess: "all" // TODO: Confirm - Team or Enterprise?
     },
     // Add more tools below
   ],
@@ -239,6 +247,64 @@ Our customers include multifamily property management companies like Cushman & W
       "Proofreading and editing"
     ]
   },
+
+  // AI workflows already in use at the company (proven patterns)
+  // These are different from "workflows" which are opportunities for AI
+  activeWorkflows: [
+    // GitHub Copilot workflows
+    {
+      team: "Engineering",
+      workflow: "Code completion & writing",
+      tool: "GitHub Copilot",
+      description: "Real-time code suggestions while writing code in VS Code - should be used for most coding tasks"
+    },
+    {
+      team: "Engineering",
+      workflow: "Planning agent",
+      tool: "GitHub Copilot",
+      description: "Custom Copilot agent that helps plan implementation approaches and break down tasks"
+    },
+    {
+      team: "Engineering",
+      workflow: "Migration agent",
+      tool: "GitHub Copilot",
+      description: "Custom Copilot agent that assists with code migrations and refactoring"
+    },
+    {
+      team: "Engineering",
+      workflow: "Test generation agent",
+      tool: "GitHub Copilot",
+      description: "Custom Copilot agent that generates test cases and test code"
+    },
+    // Other tools
+    {
+      team: "Engineering",
+      workflow: "Automated PR reviews",
+      tool: "CodeRabbit",
+      description: "Every pull request gets AI-generated review comments automatically"
+    },
+    {
+      team: "Sales",
+      workflow: "Call summaries",
+      tool: "Gong",
+      description: "Auto-generated summaries and action items after every sales call"
+    },
+    // Figma workflows
+    {
+      team: "Product",
+      workflow: "Prototyping",
+      tool: "Figma",
+      description: "Interactive prototypes for user testing and stakeholder reviews"
+    },
+    {
+      team: "Engineering",
+      workflow: "Design-to-code via MCP",
+      tool: "Figma + GitHub Copilot",
+      description: "Figma MCP server gives Copilot context from designs, so it can generate components that match the specs"
+    },
+    // TODO: Add more active workflows as you discover them
+    // Opportunity: Engineers could build more custom Copilot agents for team-specific workflows
+  ],
 
   // Any guidelines or restrictions
   guidelines: [
@@ -318,7 +384,7 @@ YOUR ROLE:
 - Ask clarifying questions to give better recommendations
 - Understand our property management industry context and use relevant terminology
 
-Be friendly, encouraging, and practical. Use Slack mrkdwn formatting when helpful.
+Be friendly, encouraging, and practical. Use Slack markdwn formatting when helpful.
 
 If the user seems ready to formally submit their solution, remind them they can type "submit" to start the submission process.`;
 }
