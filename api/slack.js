@@ -23,7 +23,13 @@ import { companyContext } from '../config/company-context.js';
 
 // Access control - set to false to open to everyone
 const PRIVATE_MODE = true;
-const ALLOWED_USERS = [process.env.ADMIN_USER_ID];
+const ALLOWED_USERS = [
+  process.env.ADMIN_USER_ID,
+  // Add test users below (Slack user IDs start with U)
+  'U57RY52DP',
+  'UMMN64FNF',
+  'U06J5F5A5PA',
+];
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID;
 
 // Track processed events to prevent duplicates (Slack retries)
