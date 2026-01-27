@@ -176,7 +176,7 @@ Our customers include multifamily property management companies like Cushman & W
       useCases: ["Task management", "Project tracking", "Documentation", "Team collaboration", "Meeting notes", "Knowledge management", "SOP creation", "Automated workflows"],
       teams: ["All teams"],
       licenseAccess: "all",
-      notes: "ClickUp Brain is $7/user/month add-on. AI Notetaker being tested. Brain can search across tasks, docs, chats, and Google Workspace. Custom agents can auto-respond to questions, deliver standups, update statuses, and create tasks from meetings."
+      notes: "Brain can search across tasks, docs, chats, and Google Workspace. Custom agents can auto-respond to questions, deliver standups, update statuses, and create tasks from meetings."
     },
 
     // === CRM/SALES ===

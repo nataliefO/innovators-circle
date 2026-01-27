@@ -126,7 +126,8 @@ function formatToolsList(tools, search = null) {
       t.name.toLowerCase().includes(searchLower) ||
       t.category.toLowerCase().includes(searchLower) ||
       t.useCases?.some(u => u.toLowerCase().includes(searchLower)) ||
-      t.aiFeatures?.some(f => f.toLowerCase().includes(searchLower))
+      t.aiFeatures?.some(f => f.toLowerCase().includes(searchLower)) ||
+      t.teams?.some(team => team.toLowerCase().includes(searchLower))
     );
   }
 
