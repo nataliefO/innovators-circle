@@ -9,7 +9,7 @@ import {
   addToChatHistory
 } from '../lib/sessions.js';
 import { polishSubmission, chat, helpChat } from '../lib/openai.js';
-import { sendDM, notifyAdmin } from '../lib/slack.js';
+import { sendDM, notifyAdmin, getUserName } from '../lib/slack.js';
 import {
   logSubmission,
   logHelpRequest,
@@ -70,14 +70,13 @@ function verifySlackSignature(req, body) {
 
 // Question prompts for each step
 const QUESTIONS = {
-  name: "First, what's your name?",
   problem: "What problem did you solve with AI? (Describe the challenge you faced)",
   solution: "What AI tool or solution did you use? (e.g., ChatGPT, Claude, Copilot, custom script)",
   timeSaved: "How much time did this save you? (e.g., '2 hours per week', '30 minutes per report')",
   reusableBy: "Who else in the company could benefit from this? (e.g., 'All project managers', 'Sales team', 'Anyone who writes reports')"
 };
 
-const STEP_ORDER = ['name', 'problem', 'solution', 'timeSaved', 'reusableBy'];
+const STEP_ORDER = ['problem', 'solution', 'timeSaved', 'reusableBy'];
 
 function getNextStep(currentStep) {
   const currentIndex = STEP_ORDER.indexOf(currentStep);
@@ -267,7 +266,7 @@ async function handleModeSelection(userId, text) {
 
   if (lowerText === 'submit' || lowerText === '1') {
     await createSubmissionSession(userId);
-    await sendDM(userId, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
+    await sendDM(userId, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.problem}`);
   } else if (lowerText === 'help' || lowerText === '2') {
     await createHelpSession(userId);
     await sendDM(userId, HELP_WELCOME);
@@ -308,6 +307,9 @@ async function handleSubmissionFlow(userId, text, session) {
     await sendDM(userId, "Thanks! Let me polish that up for you... ✨");
 
     try {
+      // Get user's name from Slack
+      const userName = await getUserName(userId);
+
       // Polish with OpenAI
       const polishedSummary = await polishSubmission({
         problem: updatedSession.problem,
@@ -319,7 +321,7 @@ async function handleSubmissionFlow(userId, text, session) {
       // Log to Google Sheets
       await logSubmission({
         userId,
-        userName: updatedSession.name,
+        userName,
         problem: updatedSession.problem,
         solution: updatedSession.solution,
         timeSaved: updatedSession.timeSaved,
@@ -358,7 +360,7 @@ async function handleChatFlow(userId, text, session) {
   if (text.toLowerCase() === 'submit') {
     await deleteSession(userId);
     await createSubmissionSession(userId);
-    await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.name}`);
+    await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.problem}`);
     return;
   }
 
@@ -396,7 +398,7 @@ async function handleHelpFlow(userId, text, session) {
   if (text.toLowerCase() === 'submit') {
     await deleteSession(userId);
     await createSubmissionSession(userId);
-    await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.name}`);
+    await sendDM(userId, `Switching to submission mode! 🎯\n\n${QUESTIONS.problem}`);
     return;
   }
 
@@ -546,7 +548,7 @@ export default async function handler(req, res) {
       }
       await deleteSession(body.user_id); // Clear any existing session
       await createSubmissionSession(body.user_id);
-      await sendDM(body.user_id, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.name}`);
+      await sendDM(body.user_id, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.problem}`);
       return res.status(200).send('');
     }
 
