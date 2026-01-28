@@ -299,6 +299,19 @@ async function getRandomTip() {
   return tips[Math.floor(Math.random() * tips.length)];
 }
 
+// Check if a message looks like a question/challenge rather than a department name
+function looksLikeQuestion(text) {
+  const lowerText = text.toLowerCase().trim();
+  // Questions typically have these patterns
+  const questionIndicators = [
+    '?', 'how', 'what', 'why', 'when', 'where', 'can i', 'could i', 'should i',
+    'help me', 'i want', 'i need', 'i\'m trying', 'im trying', 'looking for',
+    'is there', 'are there', 'do you', 'does', 'build', 'create', 'make',
+    'automate', 'write', 'generate', 'summarize', 'analyze'
+  ];
+  return questionIndicators.some(indicator => lowerText.includes(indicator)) || lowerText.length > 50;
+}
+
 // Handle first message from user (mode selection)
 async function handleModeSelection(userId, text) {
   const lowerText = text.toLowerCase().trim();
@@ -308,14 +321,21 @@ async function handleModeSelection(userId, text) {
     await sendDM(userId, `Great! Let's capture your AI win. 🎯\n\n${QUESTIONS.problem}`);
   } else if (lowerText === 'help' || lowerText === '2') {
     await createHelpSession(userId);
-    await sendDM(userId, HELP_WELCOME);
+    // Get user's name for personalized greeting
+    const userName = await getUserName(userId);
+    const firstName = getFirstName(userName) || 'there';
+    await sendDM(userId,
+      `👋 Hi ${firstName}! I'm here to help you find AI solutions.\n\n` +
+      `Before we start, what department or team are you in?`
+    );
   } else if (lowerText === 'chat' || lowerText === '3') {
     await createChatSession(userId);
     await sendDM(userId, "I'm ready to help you brainstorm! What challenge are you trying to solve with AI?");
   } else {
-    // Treat their message as a challenge - start help session and process immediately
+    // Treat their message as a challenge - start help session and skip department
     await createHelpSession(userId);
-    // Simulate them already being in the help flow with their message as the challenge
+    // Skip department step since they're asking a direct question
+    await updateSession(userId, { step: 'challenge' });
     const session = await getSession(userId);
     await handleHelpFlow(userId, text, session);
   }
@@ -448,6 +468,16 @@ async function handleHelpFlow(userId, text, session) {
     const matchedDepartment = matchDepartment(text);
 
     if (!matchedDepartment) {
+      // Check if they're actually asking a question instead of providing department
+      if (looksLikeQuestion(text)) {
+        // Skip department and treat as their challenge
+        await updateSession(userId, { step: 'challenge' });
+        // Re-call handleHelpFlow with the updated session to process as challenge
+        const updatedSession = await getSession(userId);
+        await handleHelpFlow(userId, text, updatedSession);
+        return;
+      }
+
       // Couldn't match - ask again with examples
       const teamList = companyContext.teams.slice(0, 8).join(', ');
       await sendDM(userId,
