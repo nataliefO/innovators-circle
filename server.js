@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
     handler(req, res);
   } else {
     res.statusCode = 200;
-    res.end('Innovators Circle Bot is running. POST to /api/slack');
+    res.end('Opie is running. POST to /api/slack');
   }
 });
 

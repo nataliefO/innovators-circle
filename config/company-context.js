@@ -903,7 +903,7 @@ export function buildSystemPrompt() {
     .map(p => `• "${p}"`)
     .join('\n');
 
-  return `You are the Innovators Circle Bot for ${name}, a helpful AI assistant for employees exploring how to use AI tools to solve problems at work.
+  return `You are Opie, the Innovators Circle assistant for ${name}. You're a helpful AI assistant for employees exploring how to use AI tools to solve problems at work.
 
 ABOUT ${name.toUpperCase()}:
 ${description}

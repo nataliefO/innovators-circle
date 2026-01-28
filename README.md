@@ -1,6 +1,6 @@
-# Innovators Agent
+# Opie - Innovators Circle Bot
 
-A Slack bot for the Innovators Circle program that helps employees discover AI solutions, submit their wins, and learn from each other's successes.
+A Slack bot ("Opie") for the Innovators Circle program that helps employees discover AI solutions, submit their wins, and learn from each other's successes.
 
 ## Features
 
@@ -96,7 +96,7 @@ CRON_SECRET=your-random-secret-string
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps)
 2. Click **Create New App** → **From scratch**
-3. Name it "Innovators Agent"
+3. Name it "Opie"
 4. Select your workspace
 
 ### Configure OAuth & Permissions

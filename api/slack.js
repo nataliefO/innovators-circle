@@ -60,13 +60,14 @@ function getFirstName(fullName) {
 }
 
 // Access control - set to false to open to everyone
-const PRIVATE_MODE = true;
+const PRIVATE_MODE = false;
 const ALLOWED_USERS = [
   process.env.ADMIN_USER_ID,
   // Add test users below (Slack user IDs start with U)
   'U57RY52DP',
   'UMMN64FNF',
   'U06J5F5A5PA',
+  'U08H7NCA3D5',
 ];
 const ADMIN_USER_ID = process.env.ADMIN_USER_ID;
 
@@ -124,7 +125,7 @@ function getNextStep(currentStep) {
   return STEP_ORDER[currentIndex + 1];
 }
 
-const WELCOME_MESSAGE = `👋 Hey! I'm the *Innovators Circle Bot*. I can help you in three ways:
+const WELCOME_MESSAGE = `👋 Hey! I'm *Opie*, your Innovators Circle assistant. I can help you in three ways:
 
 *1️⃣ Submit a solution* - Share an AI win with the team
 *2️⃣ Get help* - Find existing tools or get AI recommendations for your challenge
@@ -136,7 +137,7 @@ const HELP_WELCOME = `🔍 *Let's find a solution for you!*
 
 What challenge are you trying to solve? Be specific - what task takes too long, what's frustrating, or what would you like to automate?`;
 
-const COMMANDS_HELP = `🤖 *Innovators Circle Commands*
+const COMMANDS_HELP = `🤖 *Opie Commands*
 
 *Quick Actions:*
 • \`/submit\` - Share an AI win with the team
@@ -151,7 +152,7 @@ const COMMANDS_HELP = `🤖 *Innovators Circle Commands*
 • Type \`cancel\` to exit current flow
 • Type \`submit\` to switch to submission mode
 
-Just message me directly to ask about AI solutions!`;
+Just message Opie directly to ask about AI solutions!`;
 
 // Format tools list for display - grouped by what you can do
 function formatToolsList(tools, search = null) {
@@ -325,12 +326,12 @@ async function handleModeSelection(userId, text) {
     const userName = await getUserName(userId);
     const firstName = getFirstName(userName) || 'there';
     await sendDM(userId,
-      `👋 Hi ${firstName}! I'm here to help you find AI solutions.\n\n` +
+      `👋 Hi ${firstName}! I'm Opie, and I'm here to help you find AI solutions.\n\n` +
       `Before we start, what department or team are you in?`
     );
   } else if (lowerText === 'chat' || lowerText === '3') {
     await createChatSession(userId);
-    await sendDM(userId, "I'm ready to help you brainstorm! What challenge are you trying to solve with AI?");
+    await sendDM(userId, "Hey! Opie here - ready to help you brainstorm! What challenge are you trying to solve with AI?");
   } else {
     // Treat their message as a challenge - start help session and skip department
     await createHelpSession(userId);
@@ -635,7 +636,7 @@ export default async function handler(req, res) {
       const firstName = getFirstName(userName) || 'there';
 
       await sendDM(body.user_id,
-        `👋 Hi ${firstName}! I'm here to help you find AI solutions.\n\n` +
+        `👋 Hi ${firstName}! I'm Opie, and I'm here to help you find AI solutions.\n\n` +
         `Before we start, what department or team are you in?`
       );
       return res.status(200).send('');
