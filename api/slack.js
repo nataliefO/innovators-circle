@@ -217,7 +217,7 @@ function formatToolsList(tools, search = null) {
   return `🔧 *AI Tools You Can Use*\n\n${sections}\n\n_Try \`/tools sales\` or \`/tools writing\` for details_`;
 }
 
-// Format workflows for a team (pulls from Google Sheet)
+// Format workflows for a team (pulls from Google Sheet, sorted by grade internally)
 async function formatWorkflows(teamSearch = null) {
   const workflows = await getWorkflows();
 
@@ -225,7 +225,7 @@ async function formatWorkflows(teamSearch = null) {
     return "No workflows configured yet. An admin can seed them with `/seed-workflows`.";
   }
 
-  // Group workflows by team
+  // Group workflows by team (already sorted by grade from getWorkflows)
   const byTeam = {};
   for (const w of workflows) {
     if (!byTeam[w.team]) byTeam[w.team] = [];

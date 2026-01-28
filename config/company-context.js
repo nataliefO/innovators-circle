@@ -873,7 +873,8 @@ Our customers include multifamily property management companies like Cushman & W
 };
 
 // Build the system prompt from company context
-export function buildSystemPrompt() {
+// sheetWorkflows: optional array from Google Sheet with { team, workflow, tool, description, grade }
+export function buildSystemPrompt(sheetWorkflows = null) {
   const { name, industry, description, industryTerms, teams, approvedTools, workflows, activeWorkflows, guidelines, industryPromptIdeas, additionalContext } = companyContext;
 
   const toolsList = approvedTools
@@ -890,10 +891,26 @@ export function buildSystemPrompt() {
     .map(([team, items]) => `*${team}:*\n${items.map(w => `  • ${w}`).join('\n')}`)
     .join('\n\n');
 
-  // Build active workflows list
-  const activeWorkflowsList = activeWorkflows
-    .map(w => `• *${w.team}* - ${w.workflow} (${w.tool}): ${w.description}`)
-    .join('\n');
+  // Build active workflows list — use sheet data (graded) if available, otherwise fall back to config
+  let activeWorkflowsList;
+  if (sheetWorkflows && sheetWorkflows.length > 0) {
+    const gradeGroups = { A: [], B: [], C: [], D: [] };
+    for (const w of sheetWorkflows) {
+      const g = w.grade || 'C';
+      if (!gradeGroups[g]) gradeGroups[g] = [];
+      gradeGroups[g].push(w);
+    }
+    const sections = [];
+    if (gradeGroups.A.length) sections.push(`*CLASS A — Top Impact:*\n${gradeGroups.A.map(w => `  • ${w.team} - ${w.workflow} (${w.tool}): ${w.description}`).join('\n')}`);
+    if (gradeGroups.B.length) sections.push(`*CLASS B — Proven:*\n${gradeGroups.B.map(w => `  • ${w.team} - ${w.workflow} (${w.tool}): ${w.description}`).join('\n')}`);
+    if (gradeGroups.C.length) sections.push(`*CLASS C — In Use:*\n${gradeGroups.C.map(w => `  • ${w.team} - ${w.workflow} (${w.tool}): ${w.description}`).join('\n')}`);
+    if (gradeGroups.D.length) sections.push(`*CLASS D — Experimental:*\n${gradeGroups.D.map(w => `  • ${w.team} - ${w.workflow} (${w.tool}): ${w.description}`).join('\n')}`);
+    activeWorkflowsList = sections.join('\n\n');
+  } else {
+    activeWorkflowsList = activeWorkflows
+      .map(w => `• *${w.team}* - ${w.workflow} (${w.tool}): ${w.description}`)
+      .join('\n');
+  }
 
   const guidelinesList = guidelines
     .map(g => `• ${g}`)
@@ -915,7 +932,7 @@ TEAMS: ${teams.join(', ')}
 APPROVED AI TOOLS:
 ${toolsList}
 
-PROVEN AI WORKFLOWS ALREADY IN USE:
+PROVEN AI WORKFLOWS ALREADY IN USE (graded by impact — prioritize Class A solutions first):
 ${activeWorkflowsList}
 
 OPPORTUNITIES - WHERE AI CAN HELP:
@@ -932,7 +949,7 @@ ${additionalContext.trim()}
 YOUR ROLE:
 - Help users brainstorm AI solutions for their work challenges
 - Suggest specific tools from the approved list when relevant
-- Reference proven workflows that other teams are already using successfully
+- Reference proven workflows that other teams are already using — prioritize Class A (top impact) and Class B (proven) solutions first
 - Provide practical, actionable guidance
 - Encourage creative thinking about AI applications
 - Keep responses concise (this is Slack, not an essay)
