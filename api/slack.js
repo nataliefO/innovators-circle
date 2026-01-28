@@ -364,6 +364,69 @@ async function handleSubmissionFlow(userId, text, session) {
     return;
   }
 
+  // Handle review step — user is reviewing the polished submission
+  if (session.step === 'review') {
+    const lowerText = text.toLowerCase().trim();
+
+    if (lowerText === 'submit' || lowerText === 'yes' || lowerText === 'looks good' || lowerText === 'send it') {
+      // User confirmed — submit it
+      try {
+        const userName = await getUserName(userId);
+        const polishedSummary = session.polishedSummary;
+
+        await logSubmission({
+          userId,
+          userName,
+          problem: session.problem,
+          solution: session.solution,
+          timeSaved: session.timeSaved,
+          reusableBy: session.reusableBy,
+          polishedSummary
+        });
+
+        await notifyAdmin(userId, polishedSummary);
+        await deleteSession(userId);
+
+        await sendDM(userId,
+          `✅ *Submitted!*\n\n` +
+          `If your idea gets rolled out company-wide, you'll earn:\n` +
+          `🍽️ A night out on us!\n` +
+          `🏆 A spot in the *Innovators Circle* hall of fame\n\n` +
+          `Thanks for being a problem solver — that's what makes this team awesome. 💪\n\n` +
+          `Have another brilliant idea? Just type \`submit\` anytime!`
+        );
+      } catch (error) {
+        console.error('Error submitting:', error);
+        await sendDM(userId, "Sorry, there was an error submitting. Please try again by typing *submit*.");
+        await deleteSession(userId);
+      }
+    } else {
+      // User wants to edit — re-polish with their feedback
+      try {
+        await sendDM(userId, "Got it, let me revise that... ✏️");
+
+        const polishedSummary = await polishSubmission({
+          problem: session.problem,
+          solution: session.solution,
+          timeSaved: session.timeSaved,
+          reusableBy: session.reusableBy,
+          editRequest: text
+        });
+
+        await updateSession(userId, { polishedSummary });
+
+        await sendDM(userId,
+          `Here's the updated version:\n\n${polishedSummary}\n\n` +
+          `Reply *"submit"* to send it, or tell me what else to change.`
+        );
+      } catch (error) {
+        console.error('Error re-polishing:', error);
+        await sendDM(userId, "Sorry, I had trouble revising that. Try telling me again what to change, or type *submit* to send the current version.");
+      }
+    }
+    return;
+  }
+
   // Save current answer
   const currentStep = session.step;
   const updatedSession = await updateSession(userId, { [currentStep]: text });
@@ -376,13 +439,10 @@ async function handleSubmissionFlow(userId, text, session) {
     await updateSession(userId, { step: nextStep });
     await sendDM(userId, `Got it! ✅\n\n${QUESTIONS[nextStep]}`);
   } else {
-    // All questions answered - process submission
+    // All questions answered - polish and show for review
     await sendDM(userId, "Thanks! Let me polish that up for you... ✨");
 
     try {
-      // Get user's name from Slack
-      const userName = await getUserName(userId);
-
       // Polish with OpenAI
       const polishedSummary = await polishSubmission({
         problem: updatedSession.problem,
@@ -391,36 +451,21 @@ async function handleSubmissionFlow(userId, text, session) {
         reusableBy: text // Last answer
       });
 
-      // Log to Google Sheets
-      await logSubmission({
-        userId,
-        userName,
-        problem: updatedSession.problem,
-        solution: updatedSession.solution,
-        timeSaved: updatedSession.timeSaved,
+      // Save polished summary and move to review step
+      await updateSession(userId, {
+        step: 'review',
         reusableBy: text,
         polishedSummary
       });
 
-      // Notify admin of new submission
-      await notifyAdmin(userId, polishedSummary);
-
-      // Clean up session
-      await deleteSession(userId);
-
       await sendDM(userId,
         `🎉 Here's your polished submission:\n\n${polishedSummary}\n\n` +
-        `✅ *Got it!* Your solution is officially been submitted!\n\n` +
-        `If your idea gets rolled out company-wide, you'll earn:\n` +
-        `🍽️ A night out on us!\n` +
-        `🏆 A spot in the *Innovators Circle* hall of fame\n\n` +
-        `Thanks for being a problem solver — that's what makes this team awesome. 💪\n\n` +
-        `Have another brilliant idea? Just type \`submit\` anytime!`
+        `How does this look? Reply *"submit"* to send it, or tell me what you'd like to change.`
       );
     } catch (error) {
       console.error('Error processing submission:', error);
       await sendDM(userId,
-        "Sorry, there was an error processing your submission. Please try again."
+        "Sorry, there was an error polishing your submission. Please try again."
       );
       await deleteSession(userId);
     }
