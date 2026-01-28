@@ -114,10 +114,11 @@ const QUESTIONS = {
   problem: "What problem did you solve with AI? (Describe the challenge you faced)",
   solution: "What AI tool or solution did you use? (e.g., ChatGPT, Claude, Copilot, custom script)",
   timeSaved: "How much time did this save you? (e.g., '2 hours per week', '30 minutes per report')",
-  reusableBy: "Who else in the company could benefit from this? (e.g., 'All project managers', 'Sales team', 'Anyone who writes reports')"
+  reusableBy: "Who else in the company could benefit from this? (e.g., 'All project managers', 'Sales team', 'Anyone who writes reports')",
+  howToReuse: "How could someone else use this? (e.g., 'Follow the same prompt workflow for their reports', 'Set up the same automation in their team's ClickUp space')"
 };
 
-const STEP_ORDER = ['problem', 'solution', 'timeSaved', 'reusableBy'];
+const STEP_ORDER = ['problem', 'solution', 'timeSaved', 'reusableBy', 'howToReuse'];
 
 function getNextStep(currentStep) {
   const currentIndex = STEP_ORDER.indexOf(currentStep);
@@ -410,6 +411,7 @@ async function handleSubmissionFlow(userId, text, session) {
           solution: session.solution,
           timeSaved: session.timeSaved,
           reusableBy: session.reusableBy,
+          howToReuse: session.howToReuse,
           editRequest: text
         });
 
@@ -448,13 +450,14 @@ async function handleSubmissionFlow(userId, text, session) {
         problem: updatedSession.problem,
         solution: updatedSession.solution,
         timeSaved: updatedSession.timeSaved,
-        reusableBy: text // Last answer
+        reusableBy: updatedSession.reusableBy,
+        howToReuse: text // Last answer
       });
 
       // Save polished summary and move to review step
       await updateSession(userId, {
         step: 'review',
-        reusableBy: text,
+        howToReuse: text,
         polishedSummary
       });
 
