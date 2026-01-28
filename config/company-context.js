@@ -61,6 +61,192 @@ Our customers include multifamily property management companies like Cushman & W
     "Integrations"
   ],
 
+  // Department aliases for smart matching (user input → canonical team name)
+  departmentAliases: {
+    // Engineering variations
+    "dev": "Engineering",
+    "devs": "Engineering",
+    "developer": "Engineering",
+    "developers": "Engineering",
+    "development": "Engineering",
+    "eng": "Engineering",
+    "software": "Engineering",
+    "tech": "Engineering",
+    "technical": "Engineering",
+    "backend": "Engineering",
+    "frontend": "Engineering",
+    "fullstack": "Engineering",
+    "full stack": "Engineering",
+    "full-stack": "Engineering",
+
+    // Customer Success variations
+    "cs": "Customer Success",
+    "csm": "Customer Success",
+    "success": "Customer Success",
+    "customer success": "Customer Success",
+    "account management": "Customer Success",
+    "accounts": "Customer Success",
+
+    // Customer Support variations
+    "support": "Customer Support",
+    "help desk": "Customer Support",
+    "helpdesk": "Customer Support",
+    "service": "Customer Support",
+    "customer service": "Customer Support",
+
+    // Sales variations
+    "sales": "Sales",
+    "ae": "Sales",
+    "account executive": "Sales",
+    "bdr": "Sales",
+    "sdr": "Sales",
+    "business development": "Sales",
+
+    // Marketing variations
+    "marketing": "Marketing",
+    "mktg": "Marketing",
+    "content": "Marketing",
+    "growth": "Marketing",
+
+    // Product variations
+    "product": "Product",
+    "pm": "Product",
+    "product management": "Product",
+    "product manager": "Product",
+
+    // QA variations
+    "qa": "QA",
+    "quality": "QA",
+    "quality assurance": "QA",
+    "testing": "QA",
+    "test": "QA",
+    "tester": "QA",
+
+    // Project Management variations
+    "project management": "Project Management",
+    "project manager": "Project Management",
+    "pmo": "Project Management",
+    "projects": "Project Management",
+
+    // Finance variations
+    "finance": "Finance",
+    "accounting": "Finance",
+    "fin": "Finance",
+
+    // Operations variations
+    "operations": "Operations",
+    "ops": "Operations",
+
+    // Revenue Operations variations
+    "revops": "Revenue Operations",
+    "rev ops": "Revenue Operations",
+    "revenue ops": "Revenue Operations",
+    "revenue operations": "Revenue Operations",
+
+    // HR variations
+    "hr": "HR",
+    "human resources": "HR",
+    "people": "HR",
+    "people ops": "HR",
+
+    // Executive variations
+    "executive": "Executive",
+    "exec": "Executive",
+    "leadership": "Executive",
+    "c-suite": "Executive",
+
+    // Integrations variations
+    "integrations": "Integrations",
+    "integration": "Integrations",
+
+    // Onboarding variations
+    "onboarding": "Onboarding",
+
+    // Training variations
+    "training": "Training",
+    "l&d": "Training",
+    "learning": "Training"
+  },
+
+  // ClickUp feature links for recommendations
+  clickUpFeatures: {
+    "brain": {
+      name: "ClickUp Brain",
+      url: "https://clickup.com/features/ai",
+      description: "AI-powered assistant across all ClickUp features"
+    },
+    "docs": {
+      name: "ClickUp Docs",
+      url: "https://clickup.com/features/docs",
+      description: "Collaborative documents with AI writing assistance"
+    },
+    "tasks": {
+      name: "ClickUp Tasks",
+      url: "https://clickup.com/features/tasks",
+      description: "Task management with AI auto-assignment and prioritization"
+    },
+    "automations": {
+      name: "ClickUp Automations",
+      url: "https://clickup.com/features/automations",
+      description: "Natural language automation builder"
+    },
+    "goals": {
+      name: "ClickUp Goals",
+      url: "https://clickup.com/features/goals",
+      description: "Goal tracking and OKR management"
+    },
+    "dashboards": {
+      name: "ClickUp Dashboards",
+      url: "https://clickup.com/features/dashboards",
+      description: "Real-time reporting and analytics"
+    },
+    "whiteboards": {
+      name: "ClickUp Whiteboards",
+      url: "https://clickup.com/features/whiteboards",
+      description: "Visual collaboration and brainstorming"
+    },
+    "clips": {
+      name: "ClickUp Clips",
+      url: "https://clickup.com/features/clips",
+      description: "Screen recording with AI transcription"
+    },
+    "chat": {
+      name: "ClickUp Chat",
+      url: "https://clickup.com/features/chat",
+      description: "Team messaging with AI-powered search"
+    },
+    "forms": {
+      name: "ClickUp Forms",
+      url: "https://clickup.com/features/form-view",
+      description: "Form builder that creates tasks automatically"
+    },
+    "time-tracking": {
+      name: "ClickUp Time Tracking",
+      url: "https://clickup.com/features/time-tracking",
+      description: "Built-in time tracking with reporting"
+    },
+    "sprints": {
+      name: "ClickUp Sprints",
+      url: "https://clickup.com/features/sprints",
+      description: "Agile sprint planning and management"
+    },
+    "ai-standup": {
+      name: "ClickUp AI Standups",
+      url: "https://clickup.com/features/ai",
+      description: "AI-generated standup reports from your work"
+    },
+    "sop-wiki": {
+      name: "ClickUp Knowledge Management",
+      url: "https://clickup.com/features/docs",
+      description: "SOP and wiki generation from workspace knowledge"
+    },
+    "custom-agents": {
+      name: "ClickUp Custom Agents",
+      url: "https://clickup.com/features/ai",
+      description: "No-code custom AI agents for your workflows"
+    }
+  },
+
   // Tools and software the company uses (with AI capabilities noted)
   approvedTools: [
     // === DESIGN ===

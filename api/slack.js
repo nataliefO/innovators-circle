@@ -21,6 +21,44 @@ import {
 } from '../lib/sheets.js';
 import { companyContext } from '../config/company-context.js';
 
+// Match user input to a canonical department name
+function matchDepartment(input) {
+  if (!input) return null;
+  const normalized = input.toLowerCase().trim();
+
+  // First check if it's an exact match to a team name
+  const exactMatch = companyContext.teams.find(
+    team => team.toLowerCase() === normalized
+  );
+  if (exactMatch) return exactMatch;
+
+  // Then check aliases
+  const aliasMatch = companyContext.departmentAliases[normalized];
+  if (aliasMatch) return aliasMatch;
+
+  // Fuzzy match - check if input contains a team name or alias
+  for (const team of companyContext.teams) {
+    if (normalized.includes(team.toLowerCase()) || team.toLowerCase().includes(normalized)) {
+      return team;
+    }
+  }
+
+  // Check aliases for partial matches
+  for (const [alias, team] of Object.entries(companyContext.departmentAliases)) {
+    if (normalized.includes(alias) || alias.includes(normalized)) {
+      return team;
+    }
+  }
+
+  return null; // No match found
+}
+
+// Get first name from full name
+function getFirstName(fullName) {
+  if (!fullName) return null;
+  return fullName.split(' ')[0];
+}
+
 // Access control - set to false to open to everyone
 const PRIVATE_MODE = true;
 const ALLOWED_USERS = [
@@ -405,16 +443,40 @@ async function handleHelpFlow(userId, text, session) {
 
   const currentStep = session.step;
 
-  // First message - get challenge and start conversation immediately
+  // Step 1: Get department
+  if (currentStep === 'department') {
+    const matchedDepartment = matchDepartment(text);
+
+    if (!matchedDepartment) {
+      // Couldn't match - ask again with examples
+      const teamList = companyContext.teams.slice(0, 8).join(', ');
+      await sendDM(userId,
+        `Hmm, I couldn't match that to a department. No worries!\n\n` +
+        `Could you tell me which team you're on? For example: ${teamList}, etc.`
+      );
+      return;
+    }
+
+    // Got department - save and ask for challenge
+    await updateSession(userId, { department: matchedDepartment, step: 'challenge' });
+    await sendDM(userId,
+      `Got it - *${matchedDepartment}*! 👍\n\n` +
+      `Now, what challenge are you trying to solve? Be specific - what task takes too long, what's frustrating, or what would you like to automate?`
+    );
+    return;
+  }
+
+  // Step 2: Get challenge and start conversation
   if (currentStep === 'challenge' && !session.challenge) {
     await updateSession(userId, { challenge: text, step: 'conversation' });
 
-    // Log the initial help request (name will be null until we have users:read)
+    // Log the initial help request
+    const userName = await getUserName(userId);
     await logHelpRequest({
       userId,
-      userName: null,
+      userName,
       challenge: text,
-      category: null,
+      category: session.department,
       matchedTools: null,
       aiResponse: 'Initial request - conversation started'
     });
@@ -422,9 +484,9 @@ async function handleHelpFlow(userId, text, session) {
     await sendDM(userId, "Let me think about that... 🤔");
 
     try {
-      // Start the help conversation
+      // Start the help conversation with department context
       const conversationHistory = [{ role: 'user', content: text }];
-      const response = await helpChat(conversationHistory, text);
+      const response = await helpChat(conversationHistory, text, session.department);
 
       // Save to session
       await updateSession(userId, {
@@ -448,7 +510,7 @@ async function handleHelpFlow(userId, text, session) {
       const currentSession = await getSession(userId);
       const newHistory = [...(currentSession.conversationHistory || []), { role: 'user', content: text }];
 
-      const response = await helpChat(newHistory, currentSession.challenge);
+      const response = await helpChat(newHistory, currentSession.challenge, currentSession.department);
 
       await updateSession(userId, {
         conversationHistory: [...newHistory, { role: 'assistant', content: response }]
@@ -537,7 +599,15 @@ export default async function handler(req, res) {
       }
       await deleteSession(body.user_id); // Clear any existing session
       await createHelpSession(body.user_id);
-      await sendDM(body.user_id, HELP_WELCOME);
+
+      // Get user's name for personalized greeting
+      const userName = await getUserName(body.user_id);
+      const firstName = getFirstName(userName) || 'there';
+
+      await sendDM(body.user_id,
+        `👋 Hi ${firstName}! I'm here to help you find AI solutions.\n\n` +
+        `Before we start, what department or team are you in?`
+      );
       return res.status(200).send('');
     }
 
