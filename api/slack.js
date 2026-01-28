@@ -676,9 +676,12 @@ export default async function handler(req, res) {
 
     if (body.command === '/workflows') {
       const teamSearch = body.text?.trim() || null;
+      const userId = body.user_id;
+      // Respond immediately to avoid Slack's 3-second timeout
+      res.status(200).send('');
       const response = await formatWorkflows(teamSearch);
-      await sendDM(body.user_id, response);
-      return res.status(200).send('');
+      await sendDM(userId, response);
+      return;
     }
 
     if (body.command === '/tip') {
@@ -711,14 +714,17 @@ export default async function handler(req, res) {
         await sendDM(body.user_id, "🔒 This command is admin-only.");
         return res.status(200).send('');
       }
+      const userId = body.user_id;
+      // Respond immediately to avoid Slack's 3-second timeout
+      res.status(200).send('');
       const { activeWorkflows } = companyContext;
       const success = await seedWorkflows(activeWorkflows);
       if (success) {
-        await sendDM(body.user_id, `✅ Seeded ${activeWorkflows.length} workflows to the Google Sheet "Workflows" tab. You can now edit them directly in the sheet.`);
+        await sendDM(userId, `✅ Seeded ${activeWorkflows.length} workflows to the Google Sheet "Workflows" tab. You can now edit them directly in the sheet.`);
       } else {
-        await sendDM(body.user_id, "❌ Failed to seed workflows. Make sure the Google Sheet has a tab named *Workflows*.");
+        await sendDM(userId, "❌ Failed to seed workflows. Make sure the Google Sheet has a tab named *Workflows*.");
       }
-      return res.status(200).send('');
+      return;
     }
 
     if (body.command === '/pending') {
