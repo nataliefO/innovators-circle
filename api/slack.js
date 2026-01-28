@@ -17,7 +17,9 @@ import {
   getPendingSubmissions,
   getInnovators,
   updateSubmissionStatus,
-  getSubmissionByRow
+  getSubmissionByRow,
+  getWorkflows,
+  seedWorkflows
 } from '../lib/sheets.js';
 import { companyContext } from '../config/company-context.js';
 
@@ -215,32 +217,43 @@ function formatToolsList(tools, search = null) {
   return `🔧 *AI Tools You Can Use*\n\n${sections}\n\n_Try \`/tools sales\` or \`/tools writing\` for details_`;
 }
 
-// Format workflows for a team
-function formatWorkflows(teamSearch = null) {
-  const { workflows } = companyContext;
-  if (!workflows) return "No workflows configured.";
+// Format workflows for a team (pulls from Google Sheet)
+async function formatWorkflows(teamSearch = null) {
+  const workflows = await getWorkflows();
+
+  if (!workflows || workflows.length === 0) {
+    return "No workflows configured yet. An admin can seed them with `/seed-workflows`.";
+  }
+
+  // Group workflows by team
+  const byTeam = {};
+  for (const w of workflows) {
+    if (!byTeam[w.team]) byTeam[w.team] = [];
+    byTeam[w.team].push(w);
+  }
 
   if (teamSearch) {
     const searchLower = teamSearch.toLowerCase();
-    const matchedTeam = Object.keys(workflows).find(t =>
+    const matchedTeam = Object.keys(byTeam).find(t =>
       t.toLowerCase().includes(searchLower)
     );
 
     if (!matchedTeam) {
-      const teamList = Object.keys(workflows).join(', ');
+      const teamList = Object.keys(byTeam).join(', ');
       return `Team "${teamSearch}" not found.\n\nAvailable teams: ${teamList}`;
     }
 
-    const items = workflows[matchedTeam];
-    return `📋 *${matchedTeam} Workflows:*\n\n${items.map(w => `• ${w}`).join('\n')}`;
+    const items = byTeam[matchedTeam];
+    const formatted = items.map(w => `• *${w.workflow}* (${w.tool})\n  ${w.description}`).join('\n\n');
+    return `🤖 *${matchedTeam} — Active AI Workflows:*\n\n${formatted}`;
   }
 
   // Show all teams summary
-  const teamSummary = Object.entries(workflows)
-    .map(([team, items]) => `• *${team}* (${items.length} workflows)`)
+  const teamSummary = Object.keys(byTeam)
+    .map(team => `• *${team}* (${byTeam[team].length} workflows)`)
     .join('\n');
 
-  return `📋 *AI Workflows by Team:*\n\n${teamSummary}\n\n_Use \`/workflows [team]\` to see details (e.g., \`/workflows sales\`)_`;
+  return `🤖 *Active AI Workflows by Team:*\n\n${teamSummary}\n\n_Use \`/workflows [team]\` to see details (e.g., \`/workflows engineering\`)_`;
 }
 
 // Format the Innovators Circle hall of fame
@@ -663,7 +676,7 @@ export default async function handler(req, res) {
 
     if (body.command === '/workflows') {
       const teamSearch = body.text?.trim() || null;
-      const response = formatWorkflows(teamSearch);
+      const response = await formatWorkflows(teamSearch);
       await sendDM(body.user_id, response);
       return res.status(200).send('');
     }
@@ -693,6 +706,21 @@ export default async function handler(req, res) {
     }
 
     // Admin-only commands
+    if (body.command === '/seed-workflows') {
+      if (!isAdmin(body.user_id)) {
+        await sendDM(body.user_id, "🔒 This command is admin-only.");
+        return res.status(200).send('');
+      }
+      const { activeWorkflows } = companyContext;
+      const success = await seedWorkflows(activeWorkflows);
+      if (success) {
+        await sendDM(body.user_id, `✅ Seeded ${activeWorkflows.length} workflows to the Google Sheet "Workflows" tab. You can now edit them directly in the sheet.`);
+      } else {
+        await sendDM(body.user_id, "❌ Failed to seed workflows. Make sure the Google Sheet has a tab named *Workflows*.");
+      }
+      return res.status(200).send('');
+    }
+
     if (body.command === '/pending') {
       if (!isAdmin(body.user_id)) {
         await sendDM(body.user_id, "🔒 This command is admin-only.");
