@@ -14,12 +14,20 @@
     {
       "src": "/api/cron/reminder",
       "dest": "/api/cron/reminder.js"
+    },
+    {
+      "src": "/api/cron/weekly-tip",
+      "dest": "/api/cron/weekly-tip.js"
     }
   ],
   "crons": [
     {
       "path": "/api/cron/reminder",
       "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/cron/weekly-tip",
+      "schedule": "0 15 * * 1"
     }
   ]
 }

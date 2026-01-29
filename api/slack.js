@@ -9,7 +9,7 @@ import {
   addToChatHistory
 } from '../lib/sessions.js';
 import { polishSubmission, chat, helpChat } from '../lib/openai.js';
-import { sendDM, notifyAdmin, getUserName } from '../lib/slack.js';
+import { sendDM, notifyAdmin, getUserName, postToChannel } from '../lib/slack.js';
 import {
   logSubmission,
   logHelpRequest,
@@ -815,6 +815,19 @@ export default async function handler(req, res) {
             `We'll be in touch about your reward — a night out on us! 🍽️\n\n` +
             `Keep those innovative ideas coming!`
           );
+        }
+
+        // Announce in the company channel
+        try {
+          const memberName = submission.userId ? `<@${submission.userId}>` : submission.name;
+          await postToChannel(
+            `🏆 *New Innovators Circle Member!*\n\n` +
+            `${memberName} just joined the *Innovators Circle*!\n\n` +
+            `${submission.polishedSummary || `_${submission.problem}_`}\n\n` +
+            `Got an AI win of your own? DM me or type \`/submit\` to share it!`
+          );
+        } catch (err) {
+          console.error('Failed to post approval announcement:', err.message);
         }
       } else {
         await sendDM(body.user_id, `❌ Failed to approve submission. Please try again.`);
