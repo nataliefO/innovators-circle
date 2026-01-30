@@ -9,7 +9,7 @@ import {
   addToChatHistory
 } from '../lib/sessions.js';
 import { polishSubmission, chat, helpChat } from '../lib/openai.js';
-import { sendDM, notifyAdmin, getUserName, postToChannel } from '../lib/slack.js';
+import { sendDM, notifyAdmin, getUserName, postToChannel, addReaction, removeReaction } from '../lib/slack.js';
 import {
   logSubmission,
   logHelpRequest,
@@ -328,7 +328,7 @@ function looksLikeQuestion(text) {
 }
 
 // Handle first message from user (mode selection)
-async function handleModeSelection(userId, text) {
+async function handleModeSelection(userId, text, channel, ts) {
   const lowerText = text.toLowerCase().trim();
 
   if (lowerText === 'submit' || lowerText === '1') {
@@ -352,7 +352,7 @@ async function handleModeSelection(userId, text) {
     // Skip department step since they're asking a direct question
     await updateSession(userId, { step: 'challenge' });
     const session = await getSession(userId);
-    await handleHelpFlow(userId, text, session);
+    await handleHelpFlow(userId, text, session, channel, ts);
   }
 }
 
@@ -476,7 +476,7 @@ async function handleSubmissionFlow(userId, text, session) {
 }
 
 // Handle chat flow
-async function handleChatFlow(userId, text, session) {
+async function handleChatFlow(userId, text, session, channel, ts) {
   // Allow user to switch to submit mode
   if (text.toLowerCase() === 'submit') {
     await deleteSession(userId);
@@ -495,19 +495,22 @@ async function handleChatFlow(userId, text, session) {
   // Add user message to history
   await addToChatHistory(userId, 'user', text);
 
+  if (channel && ts) await addReaction(channel, ts, 'eyes');
   try {
     const updatedSession = await getSession(userId);
     const response = await chat(updatedSession.conversationHistory);
     await addToChatHistory(userId, 'assistant', response);
+    if (channel && ts) await removeReaction(channel, ts, 'eyes');
     await sendDM(userId, response);
   } catch (error) {
+    if (channel && ts) await removeReaction(channel, ts, 'eyes');
     console.error('Chat error:', error);
     await sendDM(userId, "Sorry, I had trouble processing that. Could you try again?");
   }
 }
 
 // Handle help flow
-async function handleHelpFlow(userId, text, session) {
+async function handleHelpFlow(userId, text, session, channel, ts) {
   // Handle cancel command
   if (text.toLowerCase() === 'cancel') {
     await deleteSession(userId);
@@ -573,7 +576,7 @@ async function handleHelpFlow(userId, text, session) {
       aiResponse: 'Initial request - conversation started'
     });
 
-    await sendDM(userId, "Let me think about that... 🤔");
+    if (channel && ts) await addReaction(channel, ts, 'eyes');
 
     try {
       // Start the help conversation with department context
@@ -588,8 +591,10 @@ async function handleHelpFlow(userId, text, session) {
         ]
       });
 
+      if (channel && ts) await removeReaction(channel, ts, 'eyes');
       await sendDM(userId, response);
     } catch (error) {
+      if (channel && ts) await removeReaction(channel, ts, 'eyes');
       console.error('Help chat error:', error);
       await sendDM(userId, "Sorry, I had trouble processing that. Could you try again?");
     }
@@ -598,6 +603,7 @@ async function handleHelpFlow(userId, text, session) {
 
   // Ongoing help conversation
   if (currentStep === 'conversation') {
+    if (channel && ts) await addReaction(channel, ts, 'eyes');
     try {
       const currentSession = await getSession(userId);
       const newHistory = [...(currentSession.conversationHistory || []), { role: 'user', content: text }];
@@ -608,8 +614,10 @@ async function handleHelpFlow(userId, text, session) {
         conversationHistory: [...newHistory, { role: 'assistant', content: response }]
       });
 
+      if (channel && ts) await removeReaction(channel, ts, 'eyes');
       await sendDM(userId, response);
     } catch (error) {
+      if (channel && ts) await removeReaction(channel, ts, 'eyes');
       console.error('Help chat error:', error);
       await sendDM(userId, "Sorry, I had trouble processing that. Could you try again?");
     }
@@ -617,7 +625,7 @@ async function handleHelpFlow(userId, text, session) {
 }
 
 // Handle DM message (conversation flow)
-async function handleDirectMessage(userId, text) {
+async function handleDirectMessage(userId, text, channel, ts) {
   // Check if user is allowed (private mode)
   if (!isUserAllowed(userId)) {
     await sendDM(userId, "🚧 This bot is currently in testing mode. Check back soon!");
@@ -628,7 +636,7 @@ async function handleDirectMessage(userId, text) {
 
   // No session - show welcome and handle mode selection
   if (!session) {
-    await handleModeSelection(userId, text);
+    await handleModeSelection(userId, text, channel, ts);
     return;
   }
 
@@ -636,9 +644,9 @@ async function handleDirectMessage(userId, text) {
   if (session.mode === 'submit') {
     await handleSubmissionFlow(userId, text, session);
   } else if (session.mode === 'chat') {
-    await handleChatFlow(userId, text, session);
+    await handleChatFlow(userId, text, session, channel, ts);
   } else if (session.mode === 'help') {
-    await handleHelpFlow(userId, text, session);
+    await handleHelpFlow(userId, text, session, channel, ts);
   }
 }
 
@@ -822,7 +830,7 @@ export default async function handler(req, res) {
           const memberName = submission.userId ? `<@${submission.userId}>` : submission.name;
           await postToChannel(
             `🏆 *New Innovators Circle Member!*\n\n` +
-            `${memberName} just joined the *Innovators Circle*!\n\n` +
+            `${memberName} has been accepted into the *Innovators Circle*!\n\n` +
             `${submission.polishedSummary || `_${submission.problem}_`}\n\n` +
             `Got an AI win of your own? DM me or type \`/submit\` to share it!`
           );
@@ -893,7 +901,7 @@ export default async function handler(req, res) {
         setTimeout(() => processedEvents.delete(eventId), EVENT_TTL);
 
         // Process the message then respond
-        await handleDirectMessage(event.user, event.text);
+        await handleDirectMessage(event.user, event.text, event.channel, event.ts);
         return res.status(200).send('');
       }
     }
