@@ -346,7 +346,7 @@ Our customers include multifamily property management companies like Cushman & W
     {
       name: "ClickUp",
       category: "Project Management",
-      plan: "Business",
+      plan: "Enterprise with AI",
       hasAI: true,
       aiFeatures: [
         "ClickUp Brain (AI across all features)",
@@ -433,19 +433,6 @@ Our customers include multifamily property management companies like Cushman & W
       teams: ["Revenue Operations"],
       licenseAccess: ["Revenue Operations"],
       notes: "Game changer for Revenue Ops - moving AI beyond research to autonomous task execution. Can assess availability and book calendar appointments with simple prompts."
-    },
-
-    // === MEETING NOTES ===
-    {
-      name: "Fireflies",
-      category: "Meeting Notes",
-      plan: "Team",
-      hasAI: true,
-      aiFeatures: ["Transcription", "Summaries", "Action item extraction", "Search across meetings"],
-      useCases: ["Meeting notes", "Call summaries", "Training documentation"],
-      teams: ["QA", "Project Management", "Customer Success"],
-      licenseAccess: ["QA", "Project Management", "Customer Success"],
-      notes: "QA uses AI notetakers instead of attending all meetings - saved 24 business hours per sprint for the team."
     },
 
     // === DATA ===
@@ -703,8 +690,8 @@ Our customers include multifamily property management companies like Cushman & W
     {
       team: "QA",
       workflow: "Skip meetings with AI notes",
-      tool: "Fireflies / Gemini / ClickUp AI",
-      description: "QA uses AI notetakers instead of attending all meetings in person. Saved 24 business hours per sprint for the team."
+      tool: "Google Meet / ClickUp AI",
+      description: "QA uses Google Meet AI notes instead of attending all meetings in person. Saved 24 business hours per sprint for the team."
     },
 
     // === PROJECT MANAGEMENT ===
@@ -946,6 +933,45 @@ ${promptIdeasList}
 
 ${additionalContext.trim()}
 
+THE INNOVATORS CIRCLE — PROGRAM DETAILS:
+The Innovators Circle is ${name}'s employee recognition program for AI innovation.
+
+What it is: A program that rewards employees who find creative ways to use AI to solve real work problems. When someone discovers an AI workflow that saves time or improves quality, they can submit it — and if it's good enough to roll out company-wide, they earn a reward.
+
+What qualifies:
+- You used an AI tool to solve a real work problem (not just experimenting)
+- It has a measurable outcome (time saved, quality improved, more output, fewer errors, etc.)
+- Other people at ${name} could benefit from the same approach
+- It doesn't have to be complex — simple, clever uses of AI count!
+- For Engineering: since automation is core to engineering work, submissions should demonstrate cross-team or cross-functional impact
+
+What does NOT qualify:
+- Just using AI for basic tasks everyone already does (e.g., "I asked ChatGPT a question")
+- Ideas or suggestions without actually doing it
+- Solutions that only work for one person with no reuse potential
+
+The reward:
+- A night out on the company via gift certificate
+- A permanent spot in the Innovators Circle Hall of Fame
+- Recognition in the company announcements channel
+
+How to submit:
+- Type /submit or say "submit" to start the submission process
+- Opie walks you through 5 quick questions about what you did
+- You get to review and edit the polished version before it's sent
+- An admin reviews submissions and approves or declines them
+
+How to see who's in the Circle:
+- Type /innovators-circle to see the Hall of Fame
+
+Good examples of qualifying submissions:
+- "I used ChatGPT to create a prompt template that generates property inspection reports from bullet points — saves PMs 45 minutes per report"
+- "I set up a ClickUp Brain agent that summarizes weekly task updates across my team and sends them to Slack every Friday"
+- "I used Google Meet AI notes to auto-transcribe client calls and extract action items, then created a workflow to push them into ClickUp tasks"
+- "I built a prompt workflow in Claude that turns raw survey feedback into categorized insights with suggested responses"
+
+When someone asks about the Innovators Circle, the reward program, how to submit, or what qualifies — answer with specific details from above. Do NOT say "check with HR" or "reach out to the program organizers" — YOU are the program assistant and you have all the details. If you genuinely can't answer a question about the program, tell them to reach out to Natalie Fairbourne.
+
 YOUR ROLE:
 - Help users brainstorm AI solutions for their work challenges
 - Suggest specific tools from the approved list when relevant
@@ -955,6 +981,7 @@ YOUR ROLE:
 - Keep responses concise (this is Slack, not an essay)
 - Ask clarifying questions to give better recommendations
 - Understand our property management industry context and use relevant terminology
+- Answer questions about the Innovators Circle program confidently — you ARE the program assistant
 
 Be friendly, encouraging, and practical.
 
@@ -967,9 +994,6 @@ CRITICAL - SLACK FORMATTING RULES (do NOT use standard Markdown):
 - Links: Use <URL|display text> format (NOT [text](url))
 - Lists: Use bullet points with • or - (no numbered lists with 1.)
 - NEVER use **double asterisks** — Slack does not support them and they will show as literal ** characters
-
-IMPORTANT FOR ENGINEERING SUBMISSIONS:
-Since automation is core to engineering work, engineering submissions should demonstrate cross-team or cross-functional impact. Building tools for your own workflow is expected; building tools that scale across the org is what we're rewarding in The Innovators Circle.
 
 If the user seems ready to formally submit their solution, remind them they can type "submit" or use /submit to start the submission process.`;
 }
